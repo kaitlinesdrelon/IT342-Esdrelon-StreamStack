@@ -1,0 +1,12 @@
+# Ignore Android/Mobile build files
+**/mobile/app/build/
+**/.idea/
+**/.gradle/
+**/local.properties
+
+# Ignore Java/Backend build files
+**/target/
+**/*.class
+
+# Ignore Node/Web modules
+**/node_modules/
