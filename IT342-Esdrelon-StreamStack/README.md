@@ -88,7 +88,7 @@ git add .
 git checkout -b branch_name     //for new branch 
 git commit -m "IT342 Phase 1 - User Registration and Login Completed"
 git branch -M main
-git remote add origin https://github.com/<your-username>/StreamStack.git
+git remote add origin https://github.com/kaitlinesdrelon/IT342-Esdrelon-StreamStack2
 git push -u origin main
 ```
 
