@@ -7,10 +7,10 @@ const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: '',
-    confirmPassword: '',
     firstname: '',
     lastname: '',
+    password: '',
+    confirmPassword: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -33,6 +33,11 @@ const Register = () => {
       return;
     }
 
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     setSuccess('');
@@ -42,15 +47,10 @@ const Register = () => {
       const response = await authService.register(registerData);
       
       if (response.success) {
-        setSuccess('Registration successful! Please log in.');
-        setFormData({
-          username: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          firstname: '',
-          lastname: '',
-        });
+        setSuccess('Registration successful! Redirecting to login...');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
       } else {
         setError(response.message || 'Registration failed');
       }
@@ -97,6 +97,40 @@ const Register = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* First Name */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                First Name
+              </label>
+              <input
+                type="text"
+                name="firstname"
+                value={formData.firstname}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900"
+                placeholder="John"
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Last Name
+              </label>
+              <input
+                type="text"
+                name="lastname"
+                value={formData.lastname}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900"
+                placeholder="Doe"
+              />
+            </div>
+
             {/* Username */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -110,7 +144,7 @@ const Register = () => {
                 required
                 disabled={isLoading}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900"
-                placeholder="Enter your username"
+                placeholder="johndoe"
               />
             </div>
 
@@ -146,6 +180,7 @@ const Register = () => {
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900"
                 placeholder="••••••••"
               />
+              <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
             </div>
 
             {/* Confirm Password */}
@@ -168,7 +203,7 @@ const Register = () => {
             {/* Register Button */}
             <button
               type="submit"
-              disabled={isLoading || !formData.username || !formData.email || !formData.password || !formData.confirmPassword}
+              disabled={isLoading || !formData.username || !formData.email || !formData.firstname || !formData.lastname || !formData.password || !formData.confirmPassword}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6"
             >
               {isLoading ? (
