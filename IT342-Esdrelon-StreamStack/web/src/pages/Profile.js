@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { userService } from '../services/api';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -73,17 +74,32 @@ const Profile = () => {
     }
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call backend API to update profile in database
+      const response = await userService.updateProfile(user.userId, formData);
       
-      // Update user in context
-      updateUser(formData);
-      setMessage('Profile updated successfully!');
-      setIsEditing(false);
-      
-      setTimeout(() => setMessage(''), 3000);
+      if (response.success) {
+        // Update local state and localStorage
+        const updatedUserData = {
+          ...user,
+          username: formData.username,
+          email: formData.email,
+          firstname: formData.firstname,
+          lastname: formData.lastname,
+        };
+        
+        updateUser(updatedUserData);
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        
+        setMessage('Profile updated successfully in database!');
+        setIsEditing(false);
+        
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setError(response.message || 'Failed to update profile');
+      }
     } catch (err) {
-      setError('Failed to update profile');
+      console.error('Error updating profile:', err);
+      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -152,20 +168,20 @@ const Profile = () => {
           {/* Profile Content */}
           <div className="p-8">
             {message && (
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded mb-6 flex items-center">
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded mb-6 flex items-center animate-fade-in">
                 <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <p className="text-green-700">{message}</p>
+                <p className="text-green-700 font-medium">{message}</p>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-6 flex items-center">
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-6 flex items-center animate-fade-in">
                 <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
-                <p className="text-red-700">{error}</p>
+                <p className="text-red-700 font-medium">{error}</p>
               </div>
             )}
 
@@ -266,7 +282,7 @@ const Profile = () => {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Saving...
+                          Saving to Database...
                         </>
                       ) : (
                         <>
@@ -293,29 +309,34 @@ const Profile = () => {
               </div>
             </form>
 
-            {/* Account Stats */}
+            
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Account Statistics</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-blue-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-blue-600">0</p>
+                  <p className="text-3xl font-bold text-blue-600">
+                    {JSON.parse(localStorage.getItem('watched') || '[]').length}
+                  </p>
                   <p className="text-sm text-gray-600 mt-1">Movies Watched</p>
                 </div>
                 <div className="bg-green-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-green-600">0</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {JSON.parse(localStorage.getItem('watchlist') || '[]').length}
+                  </p>
                   <p className="text-sm text-gray-600 mt-1">Watchlist</p>
                 </div>
                 <div className="bg-purple-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-purple-600">0</p>
+                  <p className="text-3xl font-bold text-purple-600">
+                    {JSON.parse(localStorage.getItem('favorites') || '[]').length}
+                  </p>
                   <p className="text-sm text-gray-600 mt-1">Favorites</p>
                 </div>
               </div>
             </div>
 
-            {/* Additional Info */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Changes to your username and email will be reflected immediately across the application.
+                <strong> Real-Time Database:</strong> All changes are saved directly to Supabase database and synced across all devices. Your watchlist, favorites, and watched movies are stored permanently.
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { moviesData } from '../data/Movies';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -9,16 +10,50 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [movies, setMovies] = useState([]);
+  const [filteredMovies, setFilteredMovies] = useState([]);
+  const [watchlist, setWatchlist] = useState([]);
+  const [watched, setWatched] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [categories, setCategories] = useState(['All']);
 
-  const categories = ['All', 'Action', 'Drama', 'Sci-Fi', 'Crime', 'Thriller'];
+  useEffect(() => {
+    // Load movies from shared data
+    setMovies(moviesData);
+    setFilteredMovies(moviesData);
 
-  // Sample movies data
-  const movies = [
-    { id: 1, title: 'The Shawshank Redemption', genre: 'Drama' },
-    { id: 2, title: 'The Godfather', genre: 'Crime' },
-    { id: 3, title: 'The Dark Knight', genre: 'Action' },
-    { id: 4, title: 'Inception', genre: 'Sci-Fi' },
-  ];
+    // Extract unique genres from movies
+    const uniqueGenres = ['All', ...new Set(moviesData.map(movie => movie.genre))];
+    setCategories(uniqueGenres);
+
+    // Load watchlist, watched, favorites from localStorage
+    const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+    const savedWatched = JSON.parse(localStorage.getItem('watched') || '[]');
+    const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    
+    setWatchlist(savedWatchlist);
+    setWatched(savedWatched);
+    setFavorites(savedFavorites);
+  }, []);
+
+  // Filter movies based on category and search
+  useEffect(() => {
+    let filtered = movies;
+
+    // Filter by category
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(movie => movie.genre === selectedCategory);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter(movie =>
+        movie.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredMovies(filtered);
+  }, [selectedCategory, searchQuery, movies]);
 
   useEffect(() => {
     const observer = {
@@ -67,7 +102,6 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <span className="text-2xl mr-2">🎬</span>
               <h1 className="text-2xl font-bold text-white">StreamStack</h1>
             </div>
             
@@ -103,6 +137,12 @@ const Dashboard = () => {
                   >
                     Settings
                   </button>
+                  <div className="px-4 py-2 border-t border-b">
+                    <p className="text-xs text-gray-500">My Lists</p>
+                    <p className="text-sm text-gray-700">Watchlist: {watchlist.length}</p>
+                    <p className="text-sm text-gray-700">Watched: {watched.length}</p>
+                    <p className="text-sm text-gray-700">Favorites: {favorites.length}</p>
+                  </div>
                   <hr className="my-2" />
                   <button
                     onClick={handleLogoutClick}
@@ -125,6 +165,20 @@ const Dashboard = () => {
             Welcome back, {user.username}!
           </h2>
           <p className="text-blue-100">Discover thousands of movies</p>
+          <div className="mt-4 flex gap-4 text-white">
+            <div>
+              <p className="text-2xl font-bold">{watchlist.length}</p>
+              <p className="text-sm text-blue-100">Watchlist</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{watched.length}</p>
+              <p className="text-sm text-blue-100">Watched</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{favorites.length}</p>
+              <p className="text-sm text-blue-100">Favorites</p>
+            </div>
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -140,11 +194,19 @@ const Dashboard = () => {
               placeholder="Search movies..."
               className="w-full bg-transparent border-none text-white placeholder-gray-400 focus:outline-none"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
         {/* Category Tabs */}
-        <div className="flex overflow-x-auto gap-2 mb-6 pb-2">
+        <div className="flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-hide">
           {categories.map((category) => (
             <button
               key={category}
@@ -160,24 +222,71 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Movie Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-          {movies.map((movie) => (
-            <div
-              key={movie.id}
-              onClick={() => handleMovieClick(movie.id)}
-              className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow cursor-pointer"
+        {/* Movies Grid */}
+        {filteredMovies.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+            {filteredMovies.map((movie) => (
+              <div
+                key={movie.id}
+                onClick={() => handleMovieClick(movie.id)}
+                className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow cursor-pointer transform hover:scale-105 duration-200"
+              >
+                <div className="relative aspect-[2/3]">
+                  <img
+                    src={movie.image}
+                    alt={movie.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/300x450/2563EB/FFFFFF?text=' + movie.title.substring(0, 1);
+                    }}
+                  />
+                  <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                    ⭐ {movie.rating}
+                  </div>
+                  {watchlist.includes(movie.id) && (
+                    <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded-full text-xs">
+                      📋 Watchlist
+                    </div>
+                  )}
+                  {watched.includes(movie.id) && (
+                    <div className="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs">
+                      ✓ Watched
+                    </div>
+                  )}
+                  {favorites.includes(movie.id) && (
+                    <div className="absolute bottom-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs">
+                      ❤️
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h3 className="font-bold text-gray-800 text-sm line-clamp-2">{movie.title}</h3>
+                  <p className="text-xs text-gray-500">{movie.genre} • {movie.year}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🎬</div>
+            <h3 className="text-2xl font-bold text-white mb-2">No Movies Found</h3>
+            <p className="text-blue-200 mb-4">
+              {searchQuery 
+                ? `No movies found for "${searchQuery}"`
+                : `No ${selectedCategory} movies available`
+              }
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+              }}
+              className="px-6 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
             >
-              <div className="aspect-[2/3] bg-gradient-to-br from-blue-200 to-blue-400 flex items-center justify-center">
-                <span className="text-5xl">🎬</span>
-              </div>
-              <div className="p-3">
-                <h3 className="font-bold text-gray-800 text-sm">{movie.title}</h3>
-                <p className="text-xs text-gray-500">{movie.genre}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+              Clear Filters
+            </button>
+          </div>
+        )}
       </main>
 
       {/* Logout Confirmation Modal */}
