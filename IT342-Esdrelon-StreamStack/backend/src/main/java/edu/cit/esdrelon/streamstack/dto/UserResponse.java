@@ -2,8 +2,10 @@ package edu.cit.esdrelon.streamstack.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class UserResponse {
     private boolean success;
@@ -11,6 +13,7 @@ public class UserResponse {
     private UserData data;
     
     @Data
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class UserData {
         private Long userId;

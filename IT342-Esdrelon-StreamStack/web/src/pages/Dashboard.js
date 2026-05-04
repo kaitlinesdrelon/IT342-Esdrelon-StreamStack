@@ -102,6 +102,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
+              <span className="text-2xl mr-2">🎬</span>
               <h1 className="text-2xl font-bold text-white">StreamStack</h1>
             </div>
             
@@ -137,28 +138,48 @@ const Dashboard = () => {
                   >
                     Settings
                   </button>
-                  <div className="px-4 py-2 border-t border-b">
-                    <p className="text-xs text-gray-500">My Lists</p>
-                    <p className="text-sm text-gray-700">Watchlist: {watchlist.length}</p>
-                    <p className="text-sm text-gray-700">Watched: {watched.length}</p>
-                    <p className="text-sm text-gray-700">Favorites: {favorites.length}</p>
-                  </div>
+                   {/* ADMIN BUTTON - ONLY FOR KAI.ESDRELON */}
+              {user?.role === 'ADMIN' && user?.email === 'kaitlin@gmail.com' && (
+                <>
                   <hr className="my-2" />
                   <button
-                    onClick={handleLogoutClick}
-                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/admin');
+                    }}
+                    className="block w-full text-left px-4 py-2 text-yellow-600 hover:bg-yellow-50 font-bold"
                   >
-                    Logout
+                    ⚡Admin Dashboard
                   </button>
-                </div>
+                </>
               )}
+        
+              <div className="px-4 py-2 border-t border-b">
+                <p className="text-xs text-gray-500">My Lists</p>
+                <p className="text-sm text-gray-700">Watchlist: {watchlist.length}</p>
+                <p className="text-sm text-gray-700">Watched: {watched.length}</p>
+                <p className="text-sm text-gray-700">Favorites: {favorites.length}</p>
+              </div>
+              <hr className="my-2" />
+              <button
+                onClick={handleLogoutClick}
+                className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+              >
+
+                Logout
+              </button>
+            </div>
+          )}
             </div>
           </div>
         </div>
       </header>
 
+
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
         {/* Hero Banner */}
         <div className="bg-blue-600 rounded-2xl p-6 mb-6 shadow-xl">
           <h2 className="text-2xl font-bold text-white mb-2">
@@ -194,6 +215,7 @@ const Dashboard = () => {
               placeholder="Search movies..."
               className="w-full bg-transparent border-none text-white placeholder-gray-400 focus:outline-none"
             />
+
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
@@ -271,7 +293,7 @@ const Dashboard = () => {
             <div className="text-6xl mb-4">🎬</div>
             <h3 className="text-2xl font-bold text-white mb-2">No Movies Found</h3>
             <p className="text-blue-200 mb-4">
-              {searchQuery 
+              {searchQuery
                 ? `No movies found for "${searchQuery}"`
                 : `No ${selectedCategory} movies available`
               }
