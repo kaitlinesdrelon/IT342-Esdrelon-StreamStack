@@ -3,7 +3,7 @@ package edu.cit.esdrelon.streamstack.controller;
 import edu.cit.esdrelon.streamstack.dto.UpdateProfileRequest;
 import edu.cit.esdrelon.streamstack.dto.UserResponse;
 import edu.cit.esdrelon.streamstack.entity.User;
-import edu.cit.esdrelon.streamstack.service.UserService;
+import edu.cit.esdrelon.streamstack.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,43 +15,59 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "http://localhost:3000")
 public class UserController {
     
-    private final UserService userService;
+    private final UserRepository userRepository;
     
     @GetMapping("/{userId}")
-    public ResponseEntity<UserResponse> getUserProfile(@PathVariable Long userId) {
+    public ResponseEntity<?> getUserProfile(@PathVariable Long userId) {
         try {
-            User user = userService.getUserById(userId);
-            return ResponseEntity.ok(createUserResponse(user, "User profile retrieved"));
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            UserResponse.UserData userData = new UserResponse.UserData(
+                user.getUserId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFirstname(),
+                user.getLastname(),
+                user.getRole()
+            );
+            
+            UserResponse response = new UserResponse(true, "User profile retrieved", userData);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            UserResponse errorResponse = new UserResponse(false, e.getMessage(), null);
-            return ResponseEntity.badRequest().body(errorResponse);
+            return ResponseEntity.badRequest().body(new UserResponse(false, e.getMessage(), null));
         }
     }
     
     @PutMapping("/{userId}")
-    public ResponseEntity<UserResponse> updateUserProfile(
+    public ResponseEntity<?> updateUserProfile(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateProfileRequest request) {
         
         try {
-            User updatedUser = userService.updateUserProfile(userId, request);
-            return ResponseEntity.ok(createUserResponse(updatedUser, "Profile updated successfully"));
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            user.setUsername(request.getUsername());
+            user.setEmail(request.getEmail());
+            user.setFirstname(request.getFirstname());
+            user.setLastname(request.getLastname());
+            
+            User updatedUser = userRepository.save(user);
+            
+            UserResponse.UserData userData = new UserResponse.UserData(
+                updatedUser.getUserId(),
+                updatedUser.getUsername(),
+                updatedUser.getEmail(),
+                updatedUser.getFirstname(),
+                updatedUser.getLastname(),
+                updatedUser.getRole()
+            );
+            
+            UserResponse response = new UserResponse(true, "Profile updated successfully", userData);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            UserResponse errorResponse = new UserResponse(false, e.getMessage(), null);
-            return ResponseEntity.badRequest().body(errorResponse);
+            return ResponseEntity.badRequest().body(new UserResponse(false, e.getMessage(), null));
         }
-    }
-    
-    private UserResponse createUserResponse(User user, String message) {
-        UserResponse.UserData userData = new UserResponse.UserData(
-            user.getUserId(),
-            user.getUsername(),
-            user.getEmail(),
-            user.getFirstname(),
-            user.getLastname(),
-            user.getRole()
-        );
-        
-        return new UserResponse(true, message, userData);
     }
 }

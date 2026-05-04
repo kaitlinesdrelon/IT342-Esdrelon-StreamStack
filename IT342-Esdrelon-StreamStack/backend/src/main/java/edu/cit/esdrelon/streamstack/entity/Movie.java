@@ -10,7 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tbl_movie")
+@Table(name = "tbl_movies")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,14 +27,16 @@ public class Movie {
     @Column(length = 1000)
     private String description;
     
+    @Column(nullable = false)
     private String genre;
     
-    @Column(name = "poster_url")
+    @Column(name = "poster_url", length = 500)
     private String posterUrl;
     
     @Column(name = "release_year")
     private Integer releaseYear;
     
+    @Column
     private Double rating;
     
     @CreationTimestamp

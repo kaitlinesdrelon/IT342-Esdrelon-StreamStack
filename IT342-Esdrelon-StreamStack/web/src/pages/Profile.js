@@ -1,193 +1,165 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { userService } from '../services/api';
+import axios from 'axios';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, updateUser, isAuthenticated } = useAuth();
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     firstname: '',
-    lastname: '',
+    lastname: ''
   });
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const [listCounts, setListCounts] = useState({
+    watchlist: 0,
+    watched: 0,
+    favorites: 0
+  });
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
     if (user) {
       setFormData({
         username: user.username || '',
         email: user.email || '',
         firstname: user.firstname || '',
-        lastname: user.lastname || '',
+        lastname: user.lastname || ''
       });
+
+      // Fetch user list counts
+      fetchListCounts();
     }
-  }, [user, isAuthenticated, navigate]);
+  }, [user]);
+
+  const fetchListCounts = async () => {
+    if (!user) return;
+
+    try {
+      const response = await axios.get(`http://localhost:8080/api/user-lists/${user.userId}`);
+      setListCounts(response.data.counts || { watchlist: 0, watched: 0, favorites: 0 });
+    } catch (error) {
+      console.error('Error fetching list counts:', error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value
     });
-    setError('');
-    setMessage('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
-    setIsSaving(true);
-
-    // Validation
-    if (!formData.username.trim()) {
-      setError('Username is required');
-      setIsSaving(false);
-      return;
-    }
-
-    if (!formData.email.trim()) {
-      setError('Email is required');
-      setIsSaving(false);
-      return;
-    }
-
-    if (!formData.firstname.trim()) {
-      setError('First name is required');
-      setIsSaving(false);
-      return;
-    }
-
-    if (!formData.lastname.trim()) {
-      setError('Last name is required');
-      setIsSaving(false);
-      return;
-    }
+    setSuccessMessage('');
+    setErrorMessage('');
+    setIsLoading(true);
 
     try {
-      // Call backend API to update profile in database
-      const response = await userService.updateProfile(user.userId, formData);
-      
-      if (response.success) {
-        // Update local state and localStorage
-        const updatedUserData = {
-          ...user,
-          username: formData.username,
-          email: formData.email,
-          firstname: formData.firstname,
-          lastname: formData.lastname,
-        };
-        
-        updateUser(updatedUserData);
-        localStorage.setItem('user', JSON.stringify(updatedUserData));
-        
-        setMessage('Profile updated successfully in database!');
+      console.log('Updating user:', user.userId, formData);
+      const response = await axios.put(
+        `http://localhost:8080/api/user/${user.userId}`,
+        formData
+      );
+
+      console.log('Update response:', response.data);
+
+      if (response.data.success) {
+        updateUser(response.data.data);
+        setSuccessMessage('Profile updated successfully!');
         setIsEditing(false);
-        
-        setTimeout(() => setMessage(''), 3000);
+        setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        setError(response.message || 'Failed to update profile');
+        setErrorMessage(response.data.message || 'Failed to update profile');
+        setTimeout(() => setErrorMessage(''), 3000);
       }
     } catch (err) {
-      console.error('Error updating profile:', err);
-      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+      console.error('Update error:', err);
+      setErrorMessage(err.response?.data?.message || 'Failed to update profile');
+      setTimeout(() => setErrorMessage(''), 3000);
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
-  };
-
-  const handleCancel = () => {
-    setFormData({
-      username: user.username || '',
-      email: user.email || '',
-      firstname: user.firstname || '',
-      lastname: user.lastname || '',
-    });
-    setIsEditing(false);
-    setError('');
-    setMessage('');
   };
 
   if (!user) return null;
 
   return (
     <div 
-      className="min-h-screen py-12 px-4"
+      className="min-h-screen"
       style={{
         background: 'linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)'
       }}
     >
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center text-white hover:text-blue-200 transition-colors"
-          >
-            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Dashboard
-          </button>
-          <h1 className="text-3xl font-bold text-white">My Profile</h1>
+      {/* Header */}
+      <header className="bg-gray-800 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center text-white hover:text-blue-200 transition-colors"
+            >
+              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <img 
+                src="/logo.png" 
+                alt="StreamStack" 
+                className="h-8"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  const fallback = e.target.nextSibling;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+              <div className="flex items-center" style={{ display: 'none' }}>
+                <span className="text-xl">🎬 StreamStack</span>
+              </div>
+            </button>
+          </div>
         </div>
+      </header>
 
-        {/* Profile Card */}
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Profile Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-center">
-            <div className="w-32 h-32 bg-white rounded-full mx-auto flex items-center justify-center mb-4 shadow-lg">
-              <span className="text-6xl font-bold text-blue-600">
-                {formData.firstname && formData.lastname 
-                  ? `${formData.firstname.charAt(0)}${formData.lastname.charAt(0)}`.toUpperCase()
-                  : formData.username.charAt(0).toUpperCase()
-                }
-              </span>
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-white">
+            <div className="flex items-center gap-6">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-blue-600 text-4xl font-bold">
+                {user.username.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold mb-2">{user.firstname} {user.lastname}</h1>
+                <p className="text-blue-100">{user.email}</p>
+                <span className="inline-block mt-2 px-3 py-1 bg-blue-500 rounded-full text-sm">
+                  {user.role}
+                </span>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              {formData.firstname && formData.lastname 
-                ? `${formData.firstname} ${formData.lastname}`
-                : formData.username
-              }
-            </h2>
-            <p className="text-blue-100">{formData.email}</p>
-            <span className="inline-block mt-3 px-4 py-1 bg-white/20 rounded-full text-white text-sm font-medium">
-              {user.role || 'USER'}
-            </span>
           </div>
 
-          {/* Profile Content */}
+          {/* Profile Form */}
           <div className="p-8">
-            {message && (
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded mb-6 flex items-center animate-fade-in">
-                <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <p className="text-green-700 font-medium">{message}</p>
+            {successMessage && (
+              <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded">
+                <p className="text-green-700 font-semibold">✓ {successMessage}</p>
               </div>
             )}
 
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-6 flex items-center animate-fade-in">
-                <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <p className="text-red-700 font-medium">{error}</p>
+            {errorMessage && (
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded">
+                <p className="text-red-700 font-semibold">✗ {errorMessage}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* First Name */}
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     First Name <span className="text-red-500">*</span>
@@ -198,13 +170,11 @@ const Profile = () => {
                     value={formData.firstname}
                     onChange={handleChange}
                     disabled={!isEditing}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="John"
                   />
                 </div>
 
-                {/* Last Name */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Last Name <span className="text-red-500">*</span>
@@ -215,15 +185,13 @@ const Profile = () => {
                     value={formData.lastname}
                     onChange={handleChange}
                     disabled={!isEditing}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="Doe"
                   />
                 </div>
               </div>
 
-              {/* Username */}
-              <div>
+              <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Username <span className="text-red-500">*</span>
                 </label>
@@ -233,14 +201,12 @@ const Profile = () => {
                   value={formData.username}
                   onChange={handleChange}
                   disabled={!isEditing}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="johndoe"
                 />
               </div>
 
-              {/* Email */}
-              <div>
+              <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Email Address <span className="text-red-500">*</span>
                 </label>
@@ -250,98 +216,77 @@ const Profile = () => {
                   value={formData.email}
                   onChange={handleChange}
                   disabled={!isEditing}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none transition-all text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="you@example.com"
                 />
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-4">
                 {!isEditing ? (
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center"
+                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
                   >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Edit Profile
+                    ✏️ Edit Profile
                   </button>
                 ) : (
                   <>
                     <button
                       type="submit"
-                      disabled={isSaving}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      disabled={isLoading}
+                      className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:bg-gray-400"
                     >
-                      {isSaving ? (
-                        <>
-                          <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Saving to Database...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Save Changes
-                        </>
-                      )}
+                      {isLoading ? 'Saving...' : '✓ Save Changes'}
                     </button>
                     <button
                       type="button"
-                      onClick={handleCancel}
-                      disabled={isSaving}
-                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setFormData({
+                          username: user.username,
+                          email: user.email,
+                          firstname: user.firstname,
+                          lastname: user.lastname
+                        });
+                      }}
+                      className="flex-1 px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition-colors"
                     >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Cancel
+                      ✕ Cancel
                     </button>
                   </>
                 )}
               </div>
             </form>
 
-            
+            {/* Account Statistics */}
             <div className="mt-8 pt-8 border-t border-gray-200">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Account Statistics</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-blue-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-blue-600">
-                    {JSON.parse(localStorage.getItem('watched') || '[]').length}
-                  </p>
+                  <p className="text-3xl font-bold text-blue-600">{listCounts.watched}</p>
                   <p className="text-sm text-gray-600 mt-1">Movies Watched</p>
                 </div>
                 <div className="bg-green-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-green-600">
-                    {JSON.parse(localStorage.getItem('watchlist') || '[]').length}
-                  </p>
+                  <p className="text-3xl font-bold text-green-600">{listCounts.watchlist}</p>
                   <p className="text-sm text-gray-600 mt-1">Watchlist</p>
                 </div>
                 <div className="bg-purple-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-purple-600">
-                    {JSON.parse(localStorage.getItem('favorites') || '[]').length}
-                  </p>
+                  <p className="text-3xl font-bold text-purple-600">{listCounts.favorites}</p>
                   <p className="text-sm text-gray-600 mt-1">Favorites</p>
                 </div>
               </div>
             </div>
 
+            {/* Additional Info */}
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <p className="text-sm text-blue-800">
-                <strong> Real-Time Database:</strong> All changes are saved directly to Supabase database and synced across all devices. Your watchlist, favorites, and watched movies are stored permanently.
+                <strong>💾 Real-Time Database:</strong> All changes are saved directly to PostgreSQL database and synced across all devices.
               </p>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

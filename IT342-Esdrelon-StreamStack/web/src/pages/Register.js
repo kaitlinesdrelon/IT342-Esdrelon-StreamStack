@@ -71,9 +71,15 @@ const Register = () => {
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-white mb-2">
-            StreamStack
-          </h1>
+          <img 
+              src="/Logo_long.png" 
+              alt="StreamStack" 
+              className="h-17 w-auto" // Increased from h-8 to h-16
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
           <h2 className="text-3xl font-bold text-white mb-2">
             Create Account
           </h2>
