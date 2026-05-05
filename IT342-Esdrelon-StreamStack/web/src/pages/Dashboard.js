@@ -97,15 +97,26 @@ const Dashboard = () => {
         background: 'linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)'
       }}
     >
-      {/* Header */}
-      <header className="bg-gray-800 shadow-lg">
+            {/* Header */}
+      <header className="bg-gray-800 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <span className="text-2xl mr-2">🎬</span>
-              <h1 className="text-2xl font-bold text-white">StreamStack</h1>
-            </div>
+          <div className="flex justify-between items-center h-16 relative"> 
             
+            <div className="flex items-center w-10"></div> 
+
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+              <img 
+                src="/Logo_long.png" 
+                alt="StreamStack" 
+                className="h-8 w-auto cursor-pointer"
+                onClick={() => navigate('/dashboard')}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            </div>
+
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -138,39 +149,40 @@ const Dashboard = () => {
                   >
                     Settings
                   </button>
-                   {/* ADMIN BUTTON - ONLY FOR KAI.ESDRELON */}
-              {user?.role === 'ADMIN' && user?.email === 'kaitlin@gmail.com' && (
-                <>
+                  
+                  {/* ADMIN BUTTON - ONLY FOR KAI.ESDRELON */}
+                  {user?.role === 'ADMIN' && user?.email === 'kaitlin@gmail.com' && (
+                    <>
+                      <hr className="my-2" />
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          navigate('/admin');
+                        }}
+                        className="block w-full text-left px-4 py-2 text-yellow-600 hover:bg-yellow-50 font-bold"
+                      >
+                        ⚡Admin Dashboard
+                      </button>
+                    </>
+                  )}
+
+                  <div className="px-4 py-2 border-t border-b">
+                    <p className="text-xs text-gray-500">My Lists</p>
+                    <p className="text-sm text-gray-700">Watchlist: {watchlist.length}</p>
+                    <p className="text-sm text-gray-700">Watched: {watched.length}</p>
+                    <p className="text-sm text-gray-700">Favorites: {favorites.length}</p>
+                  </div>
                   <hr className="my-2" />
                   <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      navigate('/admin');
-                    }}
-                    className="block w-full text-left px-4 py-2 text-yellow-600 hover:bg-yellow-50 font-bold"
+                    onClick={handleLogoutClick}
+                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
                   >
-                    ⚡Admin Dashboard
+                    Logout
                   </button>
-                </>
+                </div>
               )}
-        
-              <div className="px-4 py-2 border-t border-b">
-                <p className="text-xs text-gray-500">My Lists</p>
-                <p className="text-sm text-gray-700">Watchlist: {watchlist.length}</p>
-                <p className="text-sm text-gray-700">Watched: {watched.length}</p>
-                <p className="text-sm text-gray-700">Favorites: {favorites.length}</p>
-              </div>
-              <hr className="my-2" />
-              <button
-                onClick={handleLogoutClick}
-                className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
-              >
+            </div>
 
-                Logout
-              </button>
-            </div>
-          )}
-            </div>
           </div>
         </div>
       </header>
