@@ -6,42 +6,52 @@ import axios from 'axios';
 const Profile = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  
+  // isEditing: Kini ang nag-control kung ma-type ba nimo ang fields
   const [isEditing, setIsEditing] = useState(false);
+  
+  // formData: Dinhi ra ma-store ang imong edits locally
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     firstname: '',
     lastname: ''
   });
+
   const [listCounts, setListCounts] = useState({
     watchlist: 0,
     watched: 0,
     favorites: 0
   });
+
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Load data kausa ra inig abli sa page
   useEffect(() => {
-    if (user) {
+    if (user && !isEditing) {
       setFormData({
         username: user.username || '',
         email: user.email || '',
         firstname: user.firstname || '',
         lastname: user.lastname || ''
       });
-
-      // Fetch user list counts
       fetchListCounts();
     }
-  }, [user]);
+    // Gidugangan nato og !isEditing sa condition para dili siya mo-reset samtang nag-type ka
+  }, [user, isEditing]);
 
   const fetchListCounts = async () => {
-    if (!user) return;
-
+    const userId = user?.user_id || user?.userId;
+    if (!userId) return;
     try {
-      const response = await axios.get(`http://localhost:8080/api/user-lists/${user.userId}`);
-      setListCounts(response.data.counts || { watchlist: 0, watched: 0, favorites: 0 });
+      const response = await axios.get(`http://localhost:8080/api/user-lists/${userId}`);
+      setListCounts({
+        watchlist: response.data.watchlist?.length || 0,
+        watched: response.data.watched?.length || 0,
+        favorites: response.data.favorites?.length || 0
+      });
     } catch (error) {
       console.error('Error fetching list counts:', error);
     }
@@ -54,34 +64,31 @@ const Profile = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // KINI RA NGA FUNCTION ANG MO-SAVE SA DATABASE
+  const handleSaveToDatabase = async (e) => {
+    e.preventDefault(); 
     setSuccessMessage('');
     setErrorMessage('');
     setIsLoading(true);
 
     try {
-      console.log('Updating user:', user.userId, formData);
-      const response = await axios.put(
-        `http://localhost:8080/api/user/${user.userId}`,
-        formData
-      );
+      const userId = user.user_id || user.userId;
+      
+      // I-send ang PUT request sa backend
+      const response = await axios.put(`http://localhost:8080/api/user/${userId}`, formData);
 
-      console.log('Update response:', response.data);
-
-      if (response.data.success) {
-        updateUser(response.data.data);
+      if (response.status === 200 || response.data.success) {
+        // Human nimo i-click ang button, diha pa siya mo-update successfully
+        const updatedUser = response.data.data || response.data;
+        updateUser(updatedUser);
+        
         setSuccessMessage('Profile updated successfully!');
-        setIsEditing(false);
+        setIsEditing(false); // Lock balik ang fields
         setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setErrorMessage(response.data.message || 'Failed to update profile');
-        setTimeout(() => setErrorMessage(''), 3000);
       }
     } catch (err) {
       console.error('Update error:', err);
-      setErrorMessage(err.response?.data?.message || 'Failed to update profile');
-      setTimeout(() => setErrorMessage(''), 3000);
+      setErrorMessage(err.response?.data?.message || 'Failed to update profile.');
     } finally {
       setIsLoading(false);
     }
@@ -90,143 +97,93 @@ const Profile = () => {
   if (!user) return null;
 
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        background: 'linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)'
-      }}
-    >
-      {/* Header */}
-      <header className="bg-gray-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center text-white hover:text-blue-200 transition-colors"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <img 
-                src="/logo.png" 
-                alt="StreamStack" 
-                className="h-8"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  const fallback = e.target.nextSibling;
-                  if (fallback) fallback.style.display = 'flex';
-                }}
-              />
-              <div className="flex items-center" style={{ display: 'none' }}>
-                <span className="text-xl">🎬 StreamStack</span>
-              </div>
-            </button>
-          </div>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)' }}>
+      <header className="bg-gray-800 shadow-lg p-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <button onClick={() => navigate('/dashboard')} className="text-white flex items-center font-bold hover:text-blue-200">
+            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Profile Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-white">
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-blue-600 text-4xl font-bold">
-                {user.username.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{user.firstname} {user.lastname}</h1>
-                <p className="text-blue-100">{user.email}</p>
-                <span className="inline-block mt-2 px-3 py-1 bg-blue-500 rounded-full text-sm">
-                  {user.role}
-                </span>
-              </div>
+      <main className="max-w-4xl mx-auto py-10 px-4">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          {/* Top Banner Card */}
+          <div className="bg-blue-600 p-8 text-white flex items-center gap-6">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-blue-400">
+              {formData.firstname?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">{user.firstname} {user.lastname}</h1>
+              <p className="opacity-80">{user.email}</p>
             </div>
           </div>
 
-          {/* Profile Form */}
           <div className="p-8">
-            {successMessage && (
-              <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded">
-                <p className="text-green-700 font-semibold">✓ {successMessage}</p>
-              </div>
-            )}
+            {successMessage && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg font-bold border-l-4 border-green-500">✓ {successMessage}</div>}
+            {errorMessage && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg font-bold border-l-4 border-red-500">✕ {errorMessage}</div>}
 
-            {errorMessage && (
-              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded">
-                <p className="text-red-700 font-semibold">✗ {errorMessage}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Ang onSubmit kay handleSaveToDatabase para dili mo-save og iyaha */}
+            <form onSubmit={handleSaveToDatabase} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    First Name <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">First Name</label>
                   <input
                     type="text"
                     name="firstname"
                     value={formData.firstname}
                     onChange={handleChange}
                     disabled={!isEditing}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
-                    required
+                    className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Last Name <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Last Name</label>
                   <input
                     type="text"
                     name="lastname"
                     value={formData.lastname}
                     onChange={handleChange}
                     disabled={!isEditing}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
-                    required
+                    className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
                   />
                 </div>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Username <span className="text-red-500">*</span>
-                </label>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Username</label>
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
-                  required
+                  className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
                 />
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Email Address</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 transition-all"
-                  required
+                  className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
                 />
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-4 pt-4">
                 {!isEditing ? (
+                  /* Edit button - Kini ang mag-abli sa fields */
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                    className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95"
                   >
                     ✏️ Edit Profile
                   </button>
@@ -235,7 +192,7 @@ const Profile = () => {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:bg-gray-400"
+                      className="flex-1 py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md transition-all active:scale-95 disabled:bg-gray-400"
                     >
                       {isLoading ? 'Saving...' : '✓ Save Changes'}
                     </button>
@@ -243,14 +200,16 @@ const Profile = () => {
                       type="button"
                       onClick={() => {
                         setIsEditing(false);
+                        // I-reset ang data sa tinuod nga info kon i-cancel
                         setFormData({
-                          username: user.username,
-                          email: user.email,
-                          firstname: user.firstname,
-                          lastname: user.lastname
+                          username: user.username || '',
+                          email: user.email || '',
+                          firstname: user.firstname || '',
+                          lastname: user.lastname || ''
                         });
+                        setErrorMessage('');
                       }}
-                      className="flex-1 px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition-colors"
+                      className="flex-1 py-4 bg-gray-200 text-gray-800 font-bold rounded-xl hover:bg-gray-300 transition-all active:scale-95"
                     >
                       ✕ Cancel
                     </button>
@@ -259,30 +218,20 @@ const Profile = () => {
               </div>
             </form>
 
-            {/* Account Statistics */}
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Account Statistics</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-blue-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-blue-600">{listCounts.watched}</p>
-                  <p className="text-sm text-gray-600 mt-1">Movies Watched</p>
-                </div>
-                <div className="bg-green-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-green-600">{listCounts.watchlist}</p>
-                  <p className="text-sm text-gray-600 mt-1">Watchlist</p>
-                </div>
-                <div className="bg-purple-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-purple-600">{listCounts.favorites}</p>
-                  <p className="text-sm text-gray-600 mt-1">Favorites</p>
-                </div>
+            {/* Bottom Stats Section */}
+            <div className="mt-12 grid grid-cols-3 gap-4 border-t pt-8">
+              <div className="text-center bg-blue-50 p-4 rounded-2xl">
+                <p className="text-2xl font-black text-blue-600">{listCounts.watched}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Movies Watched</p>
               </div>
-            </div>
-
-            {/* Additional Info */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-              <p className="text-sm text-blue-800">
-                <strong>💾 Real-Time Database:</strong> All changes are saved directly to PostgreSQL database and synced across all devices.
-              </p>
+              <div className="text-center bg-green-50 p-4 rounded-2xl">
+                <p className="text-2xl font-black text-green-600">{listCounts.watchlist}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Watchlist</p>
+              </div>
+              <div className="text-center bg-purple-50 p-4 rounded-2xl">
+                <p className="text-2xl font-black text-purple-600">{listCounts.favorites}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Favorites</p>
+              </div>
             </div>
           </div>
         </div>
