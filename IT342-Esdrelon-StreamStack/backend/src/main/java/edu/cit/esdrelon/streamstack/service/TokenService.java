@@ -1,7 +1,8 @@
 package edu.cit.esdrelon.streamstack.service;
 
-import edu.cit.esdrelon.streamstack.entity.User;
 import org.springframework.stereotype.Service;
+
+import edu.cit.esdrelon.streamstack.features.user.User;
 
 /**
  * Token Service for JWT token generation
