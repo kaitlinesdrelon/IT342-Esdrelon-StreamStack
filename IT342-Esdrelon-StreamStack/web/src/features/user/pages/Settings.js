@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/authentication/context/AuthContext';
+import { useAuth } from '../../authentication/context/AuthContext';
 
 const Settings = () => {
   const navigate = useNavigate();
