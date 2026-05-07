@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/authentication/context/AuthContext';
-import { moviesData } from '../data/Movies';
+import { useAuth } from '../../authentication/context/AuthContext';
+import { moviesData } from '../components/Movies'; 
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -10,23 +10,26 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [movies, setMovies] = useState([]);
+  
+  // LOGIC FIX: Separate the source data from the filtered display data
+  const [allMovies, setAllMovies] = useState([]); 
   const [filteredMovies, setFilteredMovies] = useState([]);
+  
   const [watchlist, setWatchlist] = useState([]);
   const [watched, setWatched] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [categories, setCategories] = useState(['All']);
 
+  // INITIAL LOAD: Runs only once
   useEffect(() => {
-    // Load movies from shared data
-    setMovies(moviesData);
-    setFilteredMovies(moviesData);
+    if (moviesData) {
+      setAllMovies(moviesData);
+      setFilteredMovies(moviesData);
 
-    // Extract unique genres from movies
-    const uniqueGenres = ['All', ...new Set(moviesData.map(movie => movie.genre))];
-    setCategories(uniqueGenres);
+      const uniqueGenres = ['All', ...new Set(moviesData.map(movie => movie.genre))];
+      setCategories(uniqueGenres);
+    }
 
-    // Load watchlist, watched, favorites from localStorage
     const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
     const savedWatched = JSON.parse(localStorage.getItem('watched') || '[]');
     const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
@@ -36,16 +39,15 @@ const Dashboard = () => {
     setFavorites(savedFavorites);
   }, []);
 
-  // Filter movies based on category and search
+  // FILTER LOGIC: Fixes the Infinite Loop
   useEffect(() => {
-    let filtered = movies;
+    // Use allMovies as the static source for filtering
+    let filtered = allMovies;
 
-    // Filter by category
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(movie => movie.genre === selectedCategory);
     }
 
-    // Filter by search query
     if (searchQuery.trim() !== '') {
       filtered = filtered.filter(movie =>
         movie.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -53,7 +55,8 @@ const Dashboard = () => {
     }
 
     setFilteredMovies(filtered);
-  }, [selectedCategory, searchQuery, movies]);
+    // CRITICAL: We depend on allMovies, not filteredMovies, to prevent the loop
+  }, [selectedCategory, searchQuery, allMovies]);
 
   useEffect(() => {
     const observer = {
@@ -97,7 +100,7 @@ const Dashboard = () => {
         background: 'linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)'
       }}
     >
-            {/* Header */}
+
       <header className="bg-gray-800 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 relative"> 
@@ -150,7 +153,6 @@ const Dashboard = () => {
                     Settings
                   </button>
                   
-                  {/* ADMIN BUTTON - ONLY FOR KAI.ESDRELON */}
                   {user?.role === 'ADMIN' && user?.email === 'kaitlin@gmail.com' && (
                     <>
                       <hr className="my-2" />
@@ -182,17 +184,11 @@ const Dashboard = () => {
                 </div>
               )}
             </div>
-
           </div>
         </div>
       </header>
 
-
-
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Hero Banner */}
         <div className="bg-blue-600 rounded-2xl p-6 mb-6 shadow-xl">
           <h2 className="text-2xl font-bold text-white mb-2">
             Welcome back, {user.username}!
@@ -214,7 +210,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
         <div className="bg-gray-800 rounded-xl p-4 mb-6 shadow-lg">
           <div className="flex items-center">
             <svg className="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,19 +222,12 @@ const Dashboard = () => {
               placeholder="Search movies..."
               className="w-full bg-transparent border-none text-white placeholder-gray-400 focus:outline-none"
             />
-
             {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-white">✕</button>
             )}
           </div>
         </div>
 
-        {/* Category Tabs */}
         <div className="flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-hide">
           {categories.map((category) => (
             <button
@@ -256,7 +244,6 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Movies Grid */}
         {filteredMovies.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
             {filteredMovies.map((movie) => (
@@ -277,21 +264,6 @@ const Dashboard = () => {
                   <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                     ⭐ {movie.rating}
                   </div>
-                  {watchlist.includes(movie.id) && (
-                    <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded-full text-xs">
-                      📋 Watchlist
-                    </div>
-                  )}
-                  {watched.includes(movie.id) && (
-                    <div className="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs">
-                      ✓ Watched
-                    </div>
-                  )}
-                  {favorites.includes(movie.id) && (
-                    <div className="absolute bottom-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs">
-                      ❤️
-                    </div>
-                  )}
                 </div>
                 <div className="p-3">
                   <h3 className="font-bold text-gray-800 text-sm line-clamp-2">{movie.title}</h3>
@@ -301,56 +273,19 @@ const Dashboard = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎬</div>
-            <h3 className="text-2xl font-bold text-white mb-2">No Movies Found</h3>
-            <p className="text-blue-200 mb-4">
-              {searchQuery
-                ? `No movies found for "${searchQuery}"`
-                : `No ${selectedCategory} movies available`
-              }
-            </p>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedCategory('All');
-              }}
-              className="px-6 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-            >
-              Clear Filters
-            </button>
+          <div className="text-center py-12 text-white">
+            <h3 className="text-2xl font-bold">No Movies Found</h3>
           </div>
         )}
       </main>
 
-      {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Logout</h3>
-              <p className="text-gray-600">
-                Are you sure you want to logout?
-              </p>
-            </div>
+            <h3 className="text-xl font-bold mb-4">Are you sure you want to logout?</h3>
             <div className="flex gap-4">
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogoutConfirm}
-                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
-              >
-                Logout
-              </button>
+              <button onClick={() => setShowLogoutModal(false)} className="flex-1 py-3 bg-gray-200 rounded-lg">Cancel</button>
+              <button onClick={handleLogoutConfirm} className="flex-1 py-3 bg-red-600 text-white rounded-lg">Logout</button>
             </div>
           </div>
         </div>
