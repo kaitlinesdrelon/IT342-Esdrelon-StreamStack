@@ -112,6 +112,12 @@ git push -u origin main
 ```
 
 
+```if I want to push new codes to a existing branch
+git add .
+git commit -m "[comment]".
+git push -u origin [branch_name]
+```
+
 ``` if it has this error : fatal: 'origin' does not appear to be a git repository [fatal: Could not read from remote repository.]
 git remote add origin https://github.com/kaitlinesdrelon/IT342-Esdrelon-StreamStack.git
 git remote -v
