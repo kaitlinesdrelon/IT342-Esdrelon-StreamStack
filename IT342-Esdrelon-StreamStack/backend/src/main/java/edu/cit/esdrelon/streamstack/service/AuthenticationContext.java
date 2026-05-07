@@ -1,9 +1,10 @@
 package edu.cit.esdrelon.streamstack.service;
 
-import edu.cit.esdrelon.streamstack.dto.AuthResponse;
-import edu.cit.esdrelon.streamstack.strategy.AuthenticationStrategy;
-import edu.cit.esdrelon.streamstack.strategy.EmailPasswordStrategy;
-import edu.cit.esdrelon.streamstack.strategy.GoogleOAuthStrategy;
+import edu.cit.esdrelon.streamstack.features.authenticator.dto.AuthResponse;
+import edu.cit.esdrelon.streamstack.features.authenticator.dto.AuthenticationStrategy;
+import edu.cit.esdrelon.streamstack.features.authenticator.strategies.EmailPasswordStrategy;
+import edu.cit.esdrelon.streamstack.features.authenticator.strategies.GoogleOAuthStrategy;
+
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
