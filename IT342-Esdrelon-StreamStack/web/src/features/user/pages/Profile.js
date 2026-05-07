@@ -25,7 +25,7 @@ const Profile = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sync formData logic
+  // Sync data from AuthContext to form
   useEffect(() => {
     if (user && !isEditing) {
       setFormData({
@@ -63,10 +63,11 @@ const Profile = () => {
     });
   };
 
+  // KINI NGA FUNCTION MODAGAN LANG INIG CLICK SA "SAVE CHANGES"
   const handleSaveToDatabase = async (e) => {
     if (e) e.preventDefault(); 
     
-    // Safety check: Don't save if no changes
+    // VALIDATION: Dili mo-proceed kon wala gyuy nausab
     if (
       formData.username === user.username &&
       formData.email === user.email &&
@@ -87,7 +88,7 @@ const Profile = () => {
 
       if (response.status === 200) {
         const updatedUser = response.data.data || response.data;
-        updateUser(updatedUser);
+        updateUser(updatedUser); // Update global state
         
         setSuccessMessage('Profile updated successfully!');
         setIsEditing(false); 
@@ -104,9 +105,9 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)' }}>
-      <header className="bg-gray-800 shadow-lg p-4">
+      <header className="bg-gray-800 shadow-lg p-4 text-white">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <button onClick={() => navigate('/dashboard')} className="text-white flex items-center font-bold hover:text-blue-200">
+          <button onClick={() => navigate('/dashboard')} className="flex items-center font-bold hover:text-blue-200">
             <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -119,7 +120,7 @@ const Profile = () => {
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
           <div className="bg-blue-600 p-8 text-white flex items-center gap-6">
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-blue-400">
-              {user.firstname?.charAt(0).toUpperCase() || 'U'}
+              {user.firstname?.charAt(0).toUpperCase()}
             </div>
             <div>
               <h1 className="text-2xl font-bold">{user.firstname} {user.lastname}</h1>
@@ -131,6 +132,7 @@ const Profile = () => {
             {successMessage && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg font-bold border-l-4 border-green-500">✓ {successMessage}</div>}
             {errorMessage && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg font-bold border-l-4 border-red-500">✕ {errorMessage}</div>}
 
+            {/* CRITICAL: onSubmit handles the actual DB saving */}
             <form onSubmit={handleSaveToDatabase} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -184,11 +186,8 @@ const Profile = () => {
               <div className="flex gap-4 pt-4">
                 {!isEditing ? (
                   <button
-                    type="button" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsEditing(true);
-                    }}
+                    type="button" // MAG-ABLI RA SA FIELDS, DILI MO-SUBMIT
+                    onClick={() => setIsEditing(true)}
                     className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95"
                   >
                     ✏️ Edit Profile
@@ -196,7 +195,7 @@ const Profile = () => {
                 ) : (
                   <>
                     <button
-                      type="submit"
+                      type="submit" // KINI ANG MO-SUBMIT SA DATABASE
                       disabled={isLoading}
                       className="flex-1 py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md transition-all active:scale-95 disabled:bg-gray-400"
                     >
@@ -217,8 +216,7 @@ const Profile = () => {
               </div>
             </form>
 
-            {/* RESTORED STATS SECTION */}
-            <div className="mt-12 grid grid-cols-3 gap-4 border-t pt-8">
+            <div className="mt-12 grid grid-cols-3 gap-4 border-t pt-8 text-black">
               <div className="text-center bg-blue-50 p-4 rounded-2xl">
                 <p className="text-2xl font-black text-blue-600">{listCounts.watched}</p>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Movies Watched</p>
