@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../authentication/context/AuthContext';
 import axios from 'axios';
@@ -7,10 +7,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   
-  // isEditing: Kini ang nag-control kung ma-type ba nimo ang fields
   const [isEditing, setIsEditing] = useState(false);
-  
-  // formData: Dinhi ra ma-store ang imong edits locally
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -28,7 +25,7 @@ const Profile = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load data kausa ra inig abli sa page
+  // Sync formData logic
   useEffect(() => {
     if (user && !isEditing) {
       setFormData({
@@ -37,12 +34,10 @@ const Profile = () => {
         firstname: user.firstname || '',
         lastname: user.lastname || ''
       });
-      fetchListCounts();
     }
-    // Gidugangan nato og !isEditing sa condition para dili siya mo-reset samtang nag-type ka
   }, [user, isEditing]);
 
-  const fetchListCounts = async () => {
+  const fetchListCounts = useCallback(async () => {
     const userId = user?.user_id || user?.userId;
     if (!userId) return;
     try {
@@ -55,7 +50,11 @@ const Profile = () => {
     } catch (error) {
       console.error('Error fetching list counts:', error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) fetchListCounts();
+  }, [user, fetchListCounts]);
 
   const handleChange = (e) => {
     setFormData({
@@ -64,30 +63,37 @@ const Profile = () => {
     });
   };
 
-  // KINI RA NGA FUNCTION ANG MO-SAVE SA DATABASE
   const handleSaveToDatabase = async (e) => {
-    e.preventDefault(); 
+    if (e) e.preventDefault(); 
+    
+    // Safety check: Don't save if no changes
+    if (
+      formData.username === user.username &&
+      formData.email === user.email &&
+      formData.firstname === user.firstname &&
+      formData.lastname === user.lastname
+    ) {
+      setIsEditing(false);
+      return;
+    }
+
     setSuccessMessage('');
     setErrorMessage('');
     setIsLoading(true);
 
     try {
       const userId = user.user_id || user.userId;
-      
-      // I-send ang PUT request sa backend
       const response = await axios.put(`http://localhost:8080/api/user/${userId}`, formData);
 
-      if (response.status === 200 || response.data.success) {
-        // Human nimo i-click ang button, diha pa siya mo-update successfully
+      if (response.status === 200) {
         const updatedUser = response.data.data || response.data;
         updateUser(updatedUser);
         
         setSuccessMessage('Profile updated successfully!');
-        setIsEditing(false); // Lock balik ang fields
+        setIsEditing(false); 
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
-      console.error('Update error:', err);
       setErrorMessage(err.response?.data?.message || 'Failed to update profile.');
     } finally {
       setIsLoading(false);
@@ -111,10 +117,9 @@ const Profile = () => {
 
       <main className="max-w-4xl mx-auto py-10 px-4">
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          {/* Top Banner Card */}
           <div className="bg-blue-600 p-8 text-white flex items-center gap-6">
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-blue-400">
-              {formData.firstname?.charAt(0).toUpperCase() || 'U'}
+              {user.firstname?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div>
               <h1 className="text-2xl font-bold">{user.firstname} {user.lastname}</h1>
@@ -126,7 +131,6 @@ const Profile = () => {
             {successMessage && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg font-bold border-l-4 border-green-500">✓ {successMessage}</div>}
             {errorMessage && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg font-bold border-l-4 border-red-500">✕ {errorMessage}</div>}
 
-            {/* Ang onSubmit kay handleSaveToDatabase para dili mo-save og iyaha */}
             <form onSubmit={handleSaveToDatabase} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -137,7 +141,7 @@ const Profile = () => {
                     value={formData.firstname}
                     onChange={handleChange}
                     disabled={!isEditing}
-                    className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
+                    className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 text-black'}`}
                   />
                 </div>
                 <div>
@@ -148,7 +152,7 @@ const Profile = () => {
                     value={formData.lastname}
                     onChange={handleChange}
                     disabled={!isEditing}
-                    className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
+                    className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 text-black'}`}
                   />
                 </div>
               </div>
@@ -161,7 +165,7 @@ const Profile = () => {
                   value={formData.username}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
+                  className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 text-black'}`}
                 />
               </div>
 
@@ -173,16 +177,18 @@ const Profile = () => {
                   value={formData.email}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 focus:ring-2 focus:ring-blue-200'}`}
+                  className={`w-full p-3 border rounded-xl outline-none transition-all ${!isEditing ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-blue-400 text-black'}`}
                 />
               </div>
 
               <div className="flex gap-4 pt-4">
                 {!isEditing ? (
-                  /* Edit button - Kini ang mag-abli sa fields */
                   <button
-                    type="button"
-                    onClick={() => setIsEditing(true)}
+                    type="button" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsEditing(true);
+                    }}
                     className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95"
                   >
                     ✏️ Edit Profile
@@ -200,13 +206,6 @@ const Profile = () => {
                       type="button"
                       onClick={() => {
                         setIsEditing(false);
-                        // I-reset ang data sa tinuod nga info kon i-cancel
-                        setFormData({
-                          username: user.username || '',
-                          email: user.email || '',
-                          firstname: user.firstname || '',
-                          lastname: user.lastname || ''
-                        });
                         setErrorMessage('');
                       }}
                       className="flex-1 py-4 bg-gray-200 text-gray-800 font-bold rounded-xl hover:bg-gray-300 transition-all active:scale-95"
@@ -218,7 +217,7 @@ const Profile = () => {
               </div>
             </form>
 
-            {/* Bottom Stats Section */}
+            {/* RESTORED STATS SECTION */}
             <div className="mt-12 grid grid-cols-3 gap-4 border-t pt-8">
               <div className="text-center bg-blue-50 p-4 rounded-2xl">
                 <p className="text-2xl font-black text-blue-600">{listCounts.watched}</p>
